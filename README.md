@@ -3,7 +3,7 @@
 
 ✔ Full RTL → GDSII implementation using Cadence Innovus  
 
-This project implements a **Fault-Tolerant Arithmetic Logic Unit (ALU)** in SystemVerilog with multiple parallel error detection techniques designed for reliable digital systems.
+This project implements a **Fault-Tolerant Arithmetic Logic Unit (ALU)** in Verilog with multiple parallel error detection techniques designed for reliable digital systems.
 
 ---
 
@@ -109,59 +109,77 @@ If mismatch → `residue_error = 1`
 ## 🔎 Multi-Level Error Decision
 
 ```verilog
-error_flag = parity_error 
-           | carry_error 
-           | residue3_error 
+error_flag = parity_error
+           | carry_error
+           | residue3_error
            | residue5_error;
-🏭 RTL → GDSII Design Flow
-SystemVerilog RTL
-        ↓
-Functional Simulation
-        ↓
-Synthesis
-        ↓
-Floorplanning
-        ↓
-Placement
-        ↓
-Clock Tree Synthesis (CTS)
-        ↓
-Routing
-        ↓
-Static Timing Analysis (STA)
-        ↓
-Physical Verification (DRC/LVS)
-        ↓
-GDSII Generation
+```
 
-📊 Physical Design Results
-📐 Area
-Total Cell Area : 6868.11 µm²
-Total Instances : 979 cells
-⚡ Timing
-Clock Frequency : 100 MHz
-Worst Setup Slack : +0.061 ns ✅
-Timing Status : Met
-🧪 Verification
-DRC Violations : 0 ✅
-Connectivity : Clean ✅
-🔌 Power
-Supply Voltage : 0.9V
-⚠ Power net connection warnings observed (requires globalNetConnect refinement)
+---
+
+## 🏭 RTL → GDSII Design Flow
+
+```
+Verilog RTL
+    ↓
+Functional simulation (self-checking testbench + SVA)
+    ↓
+Synthesis
+    ↓
+Floorplanning → Placement → Clock Tree Synthesis → Routing
+    ↓
+Static Timing Analysis
+    ↓
+Physical verification (DRC)
+    ↓
+GDSII
+```
+
+---
+
+## 📊 Physical Design Results (90 nm, Cadence Innovus)
+
+| Metric | Value |
+|---|---|
+| Total cell area | 6,868.11 µm² |
+| Total instances | 979 cells |
+| Clock frequency | 100 MHz |
+| Worst setup slack | +0.061 ns (timing met) |
+| DRC violations | 0 |
+| Connectivity | Clean |
+| Supply voltage | 0.9 V |
+
+Known issue: power-net connection warnings remain (the `globalNetConnect` setup needs refinement).
 
 ![gds_diagram](https://github.com/user-attachments/assets/bb4857d4-26c9-45a3-8733-5c1fdfa41c6f)
 
+---
 
-🧪 Fault Coverage
-Parity → detects bit-level errors
-Carry checking → detects arithmetic faults
-Residue codes → detects multi-bit errors
+## 🧪 Verification
 
-✔ Combined approach significantly improves fault detection coverage
+`testbench.v` is a self-checking testbench with SystemVerilog Assertions:
 
-🧰 Tools & Technologies
-RTL Design : Verilog
-Simulation : ModelSim / XSIM
-Synthesis : Cadence / Synopsys / Vivado
-Physical Design : Cadence Innovus
-Verification : Custom Testbench
+| Assertion | Checks |
+|---|---|
+| `assert_zero` | `zero` is set whenever `result == 0` |
+| `assert_error` | the combined `error` flag is set whenever any individual checker fires |
+| `assert_logical` | no error is flagged on logical/shift operations |
+| `p_reset_clears` | reset clears `result`, `cout`, `zero`, `overflow` and `error` |
+
+What each checker catches:
+
+- **Parity:** single-bit (odd-weight) errors
+- **Carry checking:** faults in the arithmetic carry chain
+- **Residue codes (mod-3, mod-5):** multi-bit arithmetic errors
+
+---
+
+## 🧰 Tools
+
+| Step | Tool |
+|---|---|
+| RTL | Verilog (`alu.v`) |
+| Testbench | SystemVerilog assertions (`testbench.v`) |
+| Simulation | ModelSim / Vivado XSIM |
+| Synthesis | Cadence Genus |
+| Place and route | Cadence Innovus |
